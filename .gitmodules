@@ -1,0 +1,3 @@
+[submodule "ServerMessenger/spdlog"]
+	path = ServerMessenger/spdlog
+	url = https://github.com/gabime/spdlog.git
