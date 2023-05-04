@@ -2,18 +2,27 @@
 #include "Server.h"
 
 std::vector<Connection> Server::m_connections;
-size_t Server::m_maxConnections = 10;
+size_t Server::m_maxConnections = 1;
 
-bool Server::m_isStop = false;
+bool Server::m_isStart = false;
+bool Server::m_isStop = true;
+bool Server::m_isWinsockInitialized = false;
 
 std::mutex Server::m_serverMutex;
 std::condition_variable Server::m_conditionVariable;
 
-SOCKET Server::m_serverSocket;
+SOCKET Server::m_serverSocket = INVALID_SOCKET;
 
 void Server::Start()
 {
+    if (m_isStart)
+    {
+        spdlog::get("server")->info("Server has already been started");
+        return;
+    }
 	spdlog::get("server")->info("Start Server");
+    m_isStart = true;
+    m_isStop = false;
 
     WSADATA wsaData;
     if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0)
@@ -21,12 +30,12 @@ void Server::Start()
         spdlog::get("server")->error("WSAStartup failed");
         return;
     }
+    m_isWinsockInitialized = true;
 
-    SOCKET m_serverSocket = socket(AF_INET6, SOCK_STREAM, IPPROTO_TCP);
-    if (m_serverSocket == INVALID_SOCKET)
+    if ((m_serverSocket = socket(AF_INET6, SOCK_STREAM, IPPROTO_TCP)) == INVALID_SOCKET)
     {
         spdlog::get("server")->error("socket failed: {}", WSAGetLastError());
-        WSACleanup();
+        CleanUpServer();
         return;
     }
 
@@ -39,16 +48,16 @@ void Server::Start()
     if (bind(m_serverSocket, (sockaddr*)&localAddr, addrLen) == SOCKET_ERROR)
     {
         spdlog::get("server")->error("bind failed: {}", WSAGetLastError());
-        closesocket(m_serverSocket);
-        WSACleanup();
+        m_isStop = true;
+        CleanUpServer();
         return;
     }
 
     if (getsockname(m_serverSocket, (sockaddr*)&localAddr, &addrLen) == SOCKET_ERROR)
     {
         spdlog::get("server")->error("getsockname failed: {}", WSAGetLastError());
-        closesocket(m_serverSocket);
-        WSACleanup();
+        m_isStop = true;
+        CleanUpServer();
         return;
     }
 
@@ -57,8 +66,8 @@ void Server::Start()
     if (listen(m_serverSocket, SOMAXCONN) == SOCKET_ERROR)
     {
         spdlog::get("server")->error("listen failed: {}", WSAGetLastError());
-        closesocket(m_serverSocket);
-        WSACleanup();
+        m_isStop = true;
+        CleanUpServer();
         return;
     }
 
@@ -68,12 +77,10 @@ void Server::Start()
 		m_conditionVariable.wait(lock, []() { return m_connections.size() < m_maxConnections || m_isStop; });
 		if (!m_isStop)
 		{
-			m_connections.emplace_back(Connection());
+			m_connections.emplace_back(Connection()).Start();
 		}
 	}
-
-    closesocket(m_serverSocket);
-    WSACleanup();
+    m_isStart = false;
 }
 
 void Server::Stop()
@@ -81,11 +88,26 @@ void Server::Stop()
     spdlog::get("server")->info("Stop Server");
 	m_isStop = true;
 	m_conditionVariable.notify_all();
+
 	for (Connection& connection : m_connections)
 	{
 		connection.Stop();
 	}
-	m_connections.clear();
+
+    CleanUpServer();
+}
+
+void Server::CleanUpServer()
+{
+    if (m_serverSocket != INVALID_SOCKET)
+    {
+        closesocket(m_serverSocket);
+    }
+    if (m_isWinsockInitialized)
+    {
+        WSACleanup();
+        m_isWinsockInitialized = false;
+    }
 }
 
 SOCKET Server::GetSocket()
@@ -93,7 +115,11 @@ SOCKET Server::GetSocket()
     return m_serverSocket;
 }
 
-void Server::RemoveConnection(const Connection& connection)
+void Server::RemoveConnection(Connection* connection)
 {
-    //m_connections.erase(std::find(m_connections.begin(), m_connections.end(), []() {} ));
+    m_connections.erase(std::find(m_connections.begin(), m_connections.end(), *connection));
+    if (!m_isStop)
+    {
+        m_conditionVariable.notify_all();
+    }
 }

@@ -4,14 +4,20 @@ class Connection
 {
 public:
 
-	Connection();
+	~Connection();
 
 	void Start();
 
 	void Stop();
 
+	void CleanUpConnection();
+
+	bool operator==(const Connection& connection) const = default;
+
 private:
 
-	SOCKET m_clientSocket;
+	SOCKET m_clientSocket = INVALID_SOCKET;
+
+	bool m_isDestroyed = false;
 
 };

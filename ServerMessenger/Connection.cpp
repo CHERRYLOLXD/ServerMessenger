@@ -2,10 +2,9 @@
 #include "Server.h"
 #include "Connection.h"
 
-Connection::Connection() : m_clientSocket(INVALID_SOCKET)
+Connection::~Connection()
 {
-    std::thread t(&Connection::Start, *this);
-    t.detach();
+    m_isDestroyed = true;
 }
 
 void Connection::Start()
@@ -15,11 +14,10 @@ void Connection::Start()
     sockaddr_in6 clientInfo{};
     int clientInfoSize = sizeof(clientInfo);
 
-    m_clientSocket = accept(Server::GetSocket(), (SOCKADDR*)&clientInfo, &clientInfoSize);
-    if (m_clientSocket == INVALID_SOCKET)
+    if ((m_clientSocket = accept(Server::GetSocket(), (SOCKADDR*)&clientInfo, &clientInfoSize)) == INVALID_SOCKET)
     {
         spdlog::get("server")->error("accept failed: {}", WSAGetLastError());
-        Server::RemoveConnection(*this);
+        Stop();
         return;
     }
 
@@ -27,19 +25,22 @@ void Connection::Start()
     inet_ntop(AF_INET6, &clientInfo.sin6_addr, clientAddr, INET6_ADDRSTRLEN);
 
     spdlog::get("server")->info("Client connected from {}", clientAddr);
-
-    std::string welcomeMessage = "Welcome to the server!";
-    if (send(m_clientSocket, welcomeMessage.c_str(), welcomeMessage.size(), 0) == SOCKET_ERROR)
-    {
-        spdlog::get("server")->error("send failed: {}", WSAGetLastError());
-        Stop();
-        return;
-    }
 }
 
 void Connection::Stop()
 {
     spdlog::get("server")->info("Stop Connection");
-    closesocket(m_clientSocket);
-    Server::RemoveConnection(*this);
+    if (!m_isDestroyed)
+    {
+        CleanUpConnection();
+        Server::RemoveConnection(this);
+    }
+}
+
+void Connection::CleanUpConnection()
+{
+    if (m_clientSocket != INVALID_SOCKET)
+    {
+        closesocket(m_clientSocket);
+    }
 }
