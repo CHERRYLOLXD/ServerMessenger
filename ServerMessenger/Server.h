@@ -7,16 +7,15 @@ class Server
 public:
 
 	static void Start();
-
 	static void Stop();
-
-	static void CleanUpServer();
 
 	static SOCKET GetSocket();
 
-	static void RemoveConnection(Connection* connection);
+	static void RemoveConnection(const Connection& connection);
 
 private:
+
+	static void CleanUpServer();
 
 	static std::vector<Connection> m_connections;
 	static size_t m_maxConnections;

@@ -1,23 +1,28 @@
 #pragma once
 
+#include "StringMessage.h"
+
 class Connection
 {
 public:
 
-	~Connection();
-
 	void Start();
-
 	void Stop();
 
-	void CleanUpConnection();
+	template<class T>
+	void Send(const Message<T> message)
+	{
+		send(m_clientSocket, message.serialize().get(), sizeof(T), 0);
+	}
 
 	bool operator==(const Connection& connection) const = default;
 
 private:
 
-	SOCKET m_clientSocket = INVALID_SOCKET;
+	void Receive();
 
-	bool m_isDestroyed = false;
+	void CleanUpConnection();
+
+	SOCKET m_clientSocket = INVALID_SOCKET;
 
 };

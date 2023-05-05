@@ -39,13 +39,13 @@ void Server::Start()
         return;
     }
 
-    sockaddr_in6 localAddr{};
+    SOCKADDR_IN6 localAddr{};
     localAddr.sin6_addr = in6addr_any;
     localAddr.sin6_family = AF_INET6;
-    localAddr.sin6_port = htons(0);
+    localAddr.sin6_port = htons(12345);
     int addrLen = sizeof(localAddr);
 
-    if (bind(m_serverSocket, (sockaddr*)&localAddr, addrLen) == SOCKET_ERROR)
+    if (bind(m_serverSocket, (SOCKADDR*)&localAddr, addrLen) == SOCKET_ERROR)
     {
         spdlog::get("server")->error("bind failed: {}", WSAGetLastError());
         m_isStop = true;
@@ -53,7 +53,7 @@ void Server::Start()
         return;
     }
 
-    if (getsockname(m_serverSocket, (sockaddr*)&localAddr, &addrLen) == SOCKET_ERROR)
+    if (getsockname(m_serverSocket, (SOCKADDR*)&localAddr, &addrLen) == SOCKET_ERROR)
     {
         spdlog::get("server")->error("getsockname failed: {}", WSAGetLastError());
         m_isStop = true;
@@ -61,7 +61,7 @@ void Server::Start()
         return;
     }
 
-    spdlog::get("server")->info("Listening on port {}", ntohs(localAddr.sin6_port));
+    spdlog::get("server")->info("Listening on [{}]:{}", "::", ntohs(localAddr.sin6_port));
 
     if (listen(m_serverSocket, SOMAXCONN) == SOCKET_ERROR)
     {
@@ -89,11 +89,6 @@ void Server::Stop()
 	m_isStop = true;
 	m_conditionVariable.notify_all();
 
-	for (Connection& connection : m_connections)
-	{
-		connection.Stop();
-	}
-
     CleanUpServer();
 }
 
@@ -108,6 +103,10 @@ void Server::CleanUpServer()
         WSACleanup();
         m_isWinsockInitialized = false;
     }
+    for (Connection& connection : m_connections)
+    {
+        connection.Stop();
+    }
 }
 
 SOCKET Server::GetSocket()
@@ -115,9 +114,14 @@ SOCKET Server::GetSocket()
     return m_serverSocket;
 }
 
-void Server::RemoveConnection(Connection* connection)
+void Server::RemoveConnection(const Connection& connection)
 {
-    m_connections.erase(std::find(m_connections.begin(), m_connections.end(), *connection));
+    std::vector<Connection>::iterator it;
+    if ((it = std::find(m_connections.begin(), m_connections.end(), connection)) == m_connections.end())
+    {
+        return;
+    }
+    m_connections.erase(it);
     if (!m_isStop)
     {
         m_conditionVariable.notify_all();
