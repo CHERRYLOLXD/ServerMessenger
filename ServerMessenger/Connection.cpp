@@ -84,7 +84,7 @@ void Connection::Receive()
         }
         default:
         {
-            Console::PrintErrorLine(L"id failed: ", id);
+            Console::PrintErrorLine(L"id failed: {}", id);
             Stop();
             return;
         }
