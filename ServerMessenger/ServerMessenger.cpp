@@ -1,14 +1,33 @@
 ﻿#include "ServerMessenger.h"
+#include "Console.h"
 #include "Server.h"
+#include "VirtualNetwork.h"
 
-int main()
+int32_t wmain()
 {
-    spdlog::register_logger(std::make_shared<spdlog::logger>("server", spdlog::sinks_init_list{ std::make_shared<spdlog::sinks::stdout_color_sink_mt>(), std::make_shared<spdlog::sinks::rotating_file_sink_mt>("logs/server.log", 1024 * 1024 * 10, 5) }));
-    
-    std::jthread serverJThread(Server::Start);
-    
-    atexit(Server::Stop);
+    std::wcout << std::unitbuf;
 
-    int funnyNumber;
-    std::cin >> funnyNumber;
+    int32_t result;
+    if (result = _setmode(_fileno(stdout), _O_U16TEXT) < 0)
+    {
+        Console::PrintErrorLine(L"_setmode failed: {}", result);
+        return result;
+    }
+    if (result = _setmode(_fileno(stdin), _O_U16TEXT) < 0)
+    {
+        Console::PrintErrorLine(L"_setmode failed: {}", result);
+        return result;
+    }
+    if (result = _setmode(_fileno(stderr), _O_U16TEXT) < 0)
+    {
+        Console::PrintErrorLine(L"_setmode failed: {}", result);
+        return result;
+    }
+
+    std::jthread serverJThread(Server::Start);
+    while (true)
+    {
+
+    }
+    Server::Stop();
 }

@@ -2,13 +2,13 @@
 
 #include "Message.h"
 
-class StringMessage : public Message<std::string>
+class StringMessage : public Message<std::wstring>
 {
 public:
 
-    StringMessage(std::string data);
+    StringMessage(const std::wstring& data);
 
-    virtual std::unique_ptr<char[]> Serialize() const override;
-    static StringMessage Deserialize(const char* buffer);
+    virtual std::shared_ptr<std::vector<char>> Serialize() const override;
+    static StringMessage Deserialize(std::shared_ptr<std::vector<char>> buffer);
 
 };

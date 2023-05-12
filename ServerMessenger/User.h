@@ -4,16 +4,17 @@ class User
 {
 public:
 
-	std::string GetId();
-	void SetId(std::string id);
+	std::wstring GetId();
+	void SetId(std::wstring id);
 
-	std::string GetName();
-	void SetName(std::string name);
+	std::wstring GetName();
+	void SetName(std::wstring name);
 
 private:
 
-	std::string m_id;
+	std::wstring m_id;
 
-	std::string m_name;
+	std::wstring m_name;
+	std::wstring m_password;
 
 };

@@ -13,7 +13,7 @@ class Message
 {
 public:
 
-    Message(const T data) : m_data(data)
+    Message(const T& data) : m_data(data)
     {
 
     }
@@ -27,16 +27,16 @@ public:
         m_data = data;
     }
 
-    virtual std::unique_ptr<char[]> Serialize() const
+    virtual std::shared_ptr<std::vector<char>> Serialize() const
     {
-        std::unique_ptr<char[]> buffer(new char[sizeof(T)]);
-        memcpy_s(buffer.get(), sizeof(T), &m_data, sizeof(T));
+        std::shared_ptr<std::vector<char>> buffer(new std::vector<char>(sizeof(T)));
+        memcpy_s(buffer->data(), sizeof(T), &m_data, sizeof(T));
         return buffer;
     }
-    static Message<T> Deserialize(const char* buffer)
+    static Message<T> Deserialize(std::shared_ptr<std::vector<char>> buffer)
     {
         T data{};
-        memcpy_s(&data, sizeof(T), buffer, sizeof(T));
+        memcpy_s(&data, sizeof(T), buffer->data(), sizeof(T));
         return Message<T>(std::move(data));
     }
 

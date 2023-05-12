@@ -1,20 +1,22 @@
 #include "ServerMessenger.h"
 #include "StringMessage.h"
 
-StringMessage::StringMessage(std::string data) : Message<std::string>(data)
+StringMessage::StringMessage(const std::wstring& data) : Message<std::wstring>(data)
 {
 
 }
 
-std::unique_ptr<char[]> StringMessage::Serialize() const
+std::shared_ptr<std::vector<char>> StringMessage::Serialize() const
 {
-    std::unique_ptr<char[]> buffer(new char[m_data.size() + 1]);
-    strcpy_s(buffer.get(), m_data.size() + 1, m_data.c_str());
+    size_t size = m_data.size() * sizeof(wchar_t);
+    std::shared_ptr<std::vector<char>> buffer = std::make_shared<std::vector<char>>(size);
+    memcpy_s(buffer->data(), size, m_data.data(), size);
     return buffer;
 }
 
-StringMessage StringMessage::Deserialize(const char* buffer)
+StringMessage StringMessage::Deserialize(std::shared_ptr<std::vector<char>> buffer)
 {
-    std::string data(buffer);
+    size_t size = buffer->size() / sizeof(wchar_t);
+    std::wstring data(reinterpret_cast<wchar_t*>(buffer->data()), size);
     return StringMessage(data);
 }
