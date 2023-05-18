@@ -1,10 +1,13 @@
 #pragma once
 
+#include "MessageInformation.h"
 #include "StringMessage.h"
 
 class Connection
 {
 public:
+
+	~Connection();
 
 	void Start();
 	void Stop();

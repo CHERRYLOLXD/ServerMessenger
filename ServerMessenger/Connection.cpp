@@ -3,13 +3,19 @@
 #include "Server.h"
 #include "Connection.h"
 
+Connection::~Connection()
+{
+    Console::PrintLine(L"Stop Connection");
+
+    CleanUpConnection();
+}
+
 void Connection::Start()
 {
     Console::PrintLine(L"Start Connection");
 
     SOCKADDR_IN6 clientInfo{};
     int32_t clientInfoSize = sizeof(clientInfo);
-
     if ((m_clientSocket = accept(Server::GetSocket(), (SOCKADDR*)&clientInfo, &clientInfoSize)) == INVALID_SOCKET)
     {
         Console::PrintErrorLine(L"accept failed: {}", WSAGetLastError());
@@ -17,9 +23,9 @@ void Connection::Start()
         return;
     }
 
-    char addrBuffer[INET6_ADDRSTRLEN];
-    inet_ntop(AF_INET6, &clientInfo.sin6_addr, addrBuffer, INET6_ADDRSTRLEN);
-    Console::PrintLine(L"Client connected from: {}", addrBuffer);
+    char addressBuffer[INET6_ADDRSTRLEN];
+    inet_ntop(AF_INET6, &clientInfo.sin6_addr, addressBuffer, sizeof(addressBuffer));
+    Console::PrintLine(L"Client connected from: {}", addressBuffer);
 
     std::thread connectionThread(&Connection::Receive, *this);
     connectionThread.detach();
@@ -27,9 +33,10 @@ void Connection::Start()
 
 void Connection::Stop()
 {
-    Console::PrintLine(L"Stop Connection");
-    CleanUpConnection();
-    Server::RemoveConnection(*this);
+    if (this)
+    {
+        Server::RemoveConnection(*this);
+    }
 }
 
 void Connection::CleanUpConnection()
@@ -46,49 +53,41 @@ void Connection::Receive()
 
     while (this)
     {
-        std::shared_ptr<std::vector<char>> idBuffer = std::make_shared<std::vector<char>>(sizeof(uint8_t));
-        int32_t bytesReceived = recv(m_clientSocket, idBuffer->data(), sizeof(uint8_t), 0);
+        std::vector<char> messageInformationBuffer(sizeof(MessageInformation));
+        int32_t bytesReceived = recv(m_clientSocket, messageInformationBuffer.data(), sizeof(uint8_t), 0);
         if (bytesReceived != sizeof(uint8_t))
         {
-            Console::PrintErrorLine(L"recv id failed");
+            Console::PrintErrorLine(L"recv messageInformation failed: {}", WSAGetLastError());
             Stop();
             return;
         }
-        uint8_t id = Message<uint8_t>::Deserialize(idBuffer).GetData();
+        MessageInformation messageInformation = Message<MessageInformation>::Deserialize(messageInformationBuffer).GetData();
 
-        std::shared_ptr<std::vector<char>> sizeBuffer = std::make_shared<std::vector<char>>(sizeof(int32_t));
-        bytesReceived = recv(m_clientSocket, sizeBuffer->data(), sizeof(int32_t), 0);
-        if (bytesReceived != sizeof(int32_t))
-        {
-            Console::PrintErrorLine(L"recv size failed");
-            Stop();
-            return;
-        }
-        int32_t size = Message<int32_t>::Deserialize(sizeBuffer).GetData();
+        MessageInformation::MessagesTypes messageType = messageInformation.GetMessageType();
+        int32_t messageSize = messageInformation.GetMessageSize();
 
-        std::shared_ptr<std::vector<char>> dataBuffer = std::make_shared<std::vector<char>>(size);
-        bytesReceived = recv(m_clientSocket, dataBuffer->data(), size, 0);
-        if (bytesReceived != size)
+        std::vector<char> dataBuffer(messageSize);
+        bytesReceived = recv(m_clientSocket, dataBuffer.data(), messageSize, 0);
+        if (bytesReceived != messageSize)
         {
-            Console::PrintErrorLine(L"recv data failed");
+            Console::PrintErrorLine(L"recv data failed: {}", WSAGetLastError());
             Stop();
             return;
         }
 
-        switch (id)
+        switch (messageType)
         {
-        case MessageInfo::StringMessage:
+        case MessageInformation::StringMessage:
         {
             Console::PrintLine(L"StringMessage: {}", StringMessage::Deserialize(dataBuffer).GetData());
             break;
         }
         default:
         {
-            Console::PrintErrorLine(L"id failed: {}", id);
+            Console::PrintErrorLine(L"unknown messageType: {}", messageType);
             Stop();
             return;
         }
         }
     }
-    Stop();
 }

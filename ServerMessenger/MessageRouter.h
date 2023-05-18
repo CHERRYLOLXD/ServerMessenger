@@ -2,9 +2,11 @@
 
 #include "VirtualNetwork.h"
 
-class ServerNetwork
+class MessageRouter
 {
 public:
+
+	static void SendMessageToVirtualNetwork(const VirtualNetwork& virtualNetworks);
 
 	static VirtualNetwork& GetVirtualNetwork();
 	static void AddVirtualNetwork(const VirtualNetwork& virtualNetwork);
@@ -12,6 +14,6 @@ public:
 
 private:
 
-	static std::vector<VirtualNetwork> m_virtualNetworks;
+	static std::vector<VirtualNetwork>  m_virtualNetworks;
 
 };
