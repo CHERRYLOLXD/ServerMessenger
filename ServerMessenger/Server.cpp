@@ -1,7 +1,7 @@
 #include "ServerMessenger.h"
 #include "Console.h"
-#include "Server.h"
 #include "WinsockInitializer.h"
+#include "Server.h"
 
 std::vector<Connection> Server::m_connections;
 size_t Server::m_maxConnections = 3;

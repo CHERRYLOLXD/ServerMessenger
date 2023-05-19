@@ -33,10 +33,7 @@ void Connection::Start()
 
 void Connection::Stop()
 {
-    if (this)
-    {
-        Server::RemoveConnection(*this);
-    }
+    Server::RemoveConnection(*this);
 }
 
 void Connection::CleanUpConnection()
