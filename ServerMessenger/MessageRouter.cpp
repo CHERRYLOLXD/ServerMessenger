@@ -8,17 +8,12 @@ void MessageRouter::SendMessageToVirtualNetwork(const VirtualNetwork& virtualNet
     virtualNetworks;
 }
 
-VirtualNetwork& MessageRouter::GetVirtualNetwork()
+void MessageRouter::AddVirtualNetwork(VirtualNetwork& virtualNetwork)
 {
-    return m_virtualNetworks.front();
+	m_virtualNetworks.push_back(virtualNetwork);
 }
 
-void MessageRouter::AddVirtualNetwork(const VirtualNetwork& virtualNetwork)
-{
-	m_virtualNetworks.emplace_back(virtualNetwork);
-}
-
-void MessageRouter::RemoveVirtualNetwork(const VirtualNetwork& virtualNetwork)
+void MessageRouter::RemoveVirtualNetwork(VirtualNetwork& virtualNetwork)
 {
     std::vector<VirtualNetwork>::iterator iterator;
     if ((iterator = std::find(m_virtualNetworks.begin(), m_virtualNetworks.end(), virtualNetwork)) >= m_virtualNetworks.end())

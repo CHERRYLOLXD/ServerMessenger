@@ -6,14 +6,12 @@
 Connection::~Connection()
 {
     Console::PrintLine(L"Stop Connection");
-
     CleanUpConnection();
 }
 
 void Connection::Start()
 {
     Console::PrintLine(L"Start Connection");
-
     SOCKADDR_IN6 clientInfo{};
     int32_t clientInfoSize = sizeof(clientInfo);
     if ((m_clientSocket = accept(Server::GetSocket(), (SOCKADDR*)&clientInfo, &clientInfoSize)) == INVALID_SOCKET)
@@ -22,11 +20,9 @@ void Connection::Start()
         Stop();
         return;
     }
-
     char addressBuffer[INET6_ADDRSTRLEN];
     inet_ntop(AF_INET6, &clientInfo.sin6_addr, addressBuffer, sizeof(addressBuffer));
     Console::PrintLine(L"Client connected from: {}", addressBuffer);
-
     std::thread connectionThread(&Connection::Receive, *this);
     connectionThread.detach();
 }
@@ -47,7 +43,6 @@ void Connection::CleanUpConnection()
 void Connection::Receive()
 {
     Console::PrintLine(L"Receive Connection");
-
     while (this)
     {
         std::vector<char> messageInformationBuffer(sizeof(MessageInformation));
@@ -59,10 +54,8 @@ void Connection::Receive()
             return;
         }
         MessageInformation messageInformation = Message<MessageInformation>::Deserialize(messageInformationBuffer).GetData();
-
         MessageInformation::MessagesTypes messageType = messageInformation.GetMessageType();
         int32_t messageSize = messageInformation.GetMessageSize();
-
         std::vector<char> dataBuffer(messageSize);
         bytesReceived = recv(m_clientSocket, dataBuffer.data(), messageSize, 0);
         if (bytesReceived != messageSize)
@@ -71,7 +64,6 @@ void Connection::Receive()
             Stop();
             return;
         }
-
         switch (messageType)
         {
         case MessageInformation::StringMessage:

@@ -19,7 +19,6 @@ public:
         std::lock_guard printConsoleLock(m_printConsoleMutex);
         std::wcerr << std::move(formatted.str()) << std::endl;
     }
-
     static std::wstring ReadLine();
 
 private:

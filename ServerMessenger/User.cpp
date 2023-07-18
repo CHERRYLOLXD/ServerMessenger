@@ -1,14 +1,14 @@
 #include "ServerMessenger.h"
 #include "User.h"
 
-std::wstring User::GetId()
+std::wstring User::GetIdentifier()
 {
-	return m_id;
+	return m_identifier;
 }
 
-void User::SetId(std::wstring id)
+void User::SetIdentifier(std::wstring identifier)
 {
-	m_id = id;
+	m_identifier = identifier;
 }
 
 std::wstring User::GetName()

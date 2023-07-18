@@ -5,7 +5,6 @@ class WinsockInitializer
 public:
 
     ~WinsockInitializer();
-
     int Initialize();
 
 };

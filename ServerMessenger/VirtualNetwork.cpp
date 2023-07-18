@@ -1,7 +1,17 @@
 #include "ServerMessenger.h"
 #include "VirtualNetwork.h"
 
-std::weak_ptr<std::vector<User>> VirtualNetwork::GetUsers()
+void VirtualNetwork::AddUser(User* user)
 {
-	return m_users;
+	m_users.push_back(user);
+}
+
+void VirtualNetwork::RemoveUser(User* user)
+{
+    std::vector<User*>::iterator iterator;
+    if ((iterator = std::find(m_users.begin(), m_users.end(), user)) >= m_users.end())
+    {
+        return;
+    }
+    m_users.erase(iterator);
 }

@@ -9,7 +9,6 @@ public:
     {
 
     }
-
     T& GetData()
     {
         return m_data;
@@ -18,7 +17,6 @@ public:
     {
         m_data = data;
     }
-
     virtual std::unique_ptr<std::vector<char>> Serialize() const
     {
         std::unique_ptr<std::vector<char>> buffer(new std::vector<char>(sizeof(T)));
