@@ -1,14 +1,13 @@
-#include "ServerMessenger.h"
-#include "Console.h"
-#include "WinsockInitializer.h"
+#include "stdafx.h"
+
 #include "Server.h"
 
-std::vector<Connection> Server::m_connections;
-size_t Server::m_maxConnections = 3;
-bool Server::m_isStopped = true;
-std::mutex Server::m_serverMutex;
-std::condition_variable Server::m_conditionVariable;
 SOCKET Server::m_serverSocket = INVALID_SOCKET;
+size_t Server::m_maxConnections = 3;
+std::atomic_bool Server::m_isStopped = true;
+std::condition_variable Server::m_conditionVariable;
+std::mutex Server::m_serverMutex;
+std::vector<Connection> Server::m_connections;
 
 void Server::Start()
 {
@@ -24,19 +23,24 @@ void Server::Start()
         }
         if ((m_serverSocket = socket(AF_INET6, SOCK_STREAM, IPPROTO_TCP)) == INVALID_SOCKET)
         {
-            Console::PrintErrorLine(L"socket failed: {}", WSAGetLastError());
+            Console::PrintErrorLine(std::format(L"socket failed: [{}]", WSAGetLastError()));
             Stop();
             return;
         }
         SOCKADDR_IN6 localAddress{};
         localAddress.sin6_addr = in6addr_any;
         localAddress.sin6_family = AF_INET6;
-        Console::PrintLine(L"Select the port [enter 0 for automatic assignment]: ");
-        localAddress.sin6_port = htons(static_cast<unsigned short>(std::stoi(Console::ReadLine())));
-        int32_t addressLength = sizeof(localAddress);
+        localAddress.sin6_port = htons(static_cast<unsigned short>(std::stoi(Console::ReadLine(L"Select the port [enter 0 for automatic assignment]: "))));
+        int addressLength = sizeof(localAddress);
         if (bind(m_serverSocket, (SOCKADDR*)&localAddress, addressLength) == SOCKET_ERROR)
         {
-            Console::PrintErrorLine(L"bind failed: {}", WSAGetLastError());
+            Console::PrintErrorLine(std::format(L"bind failed: [{}]", WSAGetLastError()));
+            Stop();
+            return;
+        }
+        if (listen(m_serverSocket, SOMAXCONN) == SOCKET_ERROR)
+        {
+            Console::PrintErrorLine(std::format(L"listen failed: [{}]", WSAGetLastError()));
             Stop();
             return;
         }
@@ -52,33 +56,28 @@ void Server::Start()
         result = GetAdaptersAddresses(family, GAA_FLAG_INCLUDE_PREFIX, nullptr, adapterAddresses.get(), &outputBufferLength);
         if (result != NO_ERROR)
         {
-            Console::PrintErrorLine(L"GetAdaptersAddresses failed: {}", result);
+            Console::PrintErrorLine(std::format(L"GetAdaptersAddresses failed: [{}]", result));
             Stop();
             return;
         }
-        for (PIP_ADAPTER_ADDRESSES pCurrAddresses = adapterAddresses.get(); pCurrAddresses != nullptr; pCurrAddresses = pCurrAddresses->Next)
+        for (PIP_ADAPTER_ADDRESSES pCurrAddresses = adapterAddresses.get(); pCurrAddresses; pCurrAddresses = pCurrAddresses->Next)
         {
-            for (PIP_ADAPTER_UNICAST_ADDRESS pUnicast = pCurrAddresses->FirstUnicastAddress; pUnicast != nullptr; pUnicast = pUnicast->Next)
+            for (PIP_ADAPTER_UNICAST_ADDRESS pUnicast = pCurrAddresses->FirstUnicastAddress; pUnicast; pUnicast = pUnicast->Next)
             {
                 SOCKADDR_IN6* address = reinterpret_cast<SOCKADDR_IN6*>(pUnicast->Address.lpSockaddr);
                 char addressBuffer[INET6_ADDRSTRLEN];
                 inet_ntop(AF_INET6, &address->sin6_addr, addressBuffer, INET6_ADDRSTRLEN);
-                Console::PrintLine(L"You may be able to connect to the server through this adapter: {} at this IP: {}", pCurrAddresses->FriendlyName, addressBuffer);
+                std::wstring_view friendlyName(pCurrAddresses->FriendlyName);
+                Console::PrintLine(std::vformat(L"You may be able to connect to the server through this adapter: [{}] at this IP: [{}]", std::make_wformat_args(friendlyName, Console::DataToWString(addressBuffer))));
             }
-        }
-        if (listen(m_serverSocket, SOMAXCONN) == SOCKET_ERROR)
-        {
-            Console::PrintErrorLine(L"listen failed: {}", WSAGetLastError());
-            Stop();
-            return;
         }
         if (getsockname(m_serverSocket, (SOCKADDR*)&localAddress, &addressLength) == SOCKET_ERROR)
         {
-            Console::PrintErrorLine(L"getsockname failed: {}", WSAGetLastError());
+            Console::PrintErrorLine(std::format(L"getsockname failed: [{}]", WSAGetLastError()));
             Stop();
             return;
         }
-        Console::PrintLine(L"Listening on this port: {}", ntohs(localAddress.sin6_port));
+        Console::PrintLine(std::format(L"Listening on this port: [{}]", ntohs(localAddress.sin6_port)));
     }
 	while (!m_isStopped)
 	{

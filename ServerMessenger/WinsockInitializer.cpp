@@ -1,4 +1,5 @@
-#include "ServerMessenger.h"
+#include "stdafx.h"
+
 #include "WinsockInitializer.h"
 
 WinsockInitializer::~WinsockInitializer()

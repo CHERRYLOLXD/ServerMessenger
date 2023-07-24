@@ -5,10 +5,12 @@ class Message
 {
 public:
 
-    Message(const T& data) : m_data(data)
+    Message(T&& data) :
+        m_data(data)
     {
 
     }
+
     T& GetData()
     {
         return m_data;
@@ -17,17 +19,22 @@ public:
     {
         m_data = data;
     }
+
     virtual std::unique_ptr<std::vector<char>> Serialize() const
     {
-        std::unique_ptr<std::vector<char>> buffer(new std::vector<char>(sizeof(T)));
+        std::unique_ptr<std::vector<char>> buffer = std::make_unique<std::vector<char>>(sizeof(T));
         memcpy_s(buffer->data(), sizeof(T), &m_data, sizeof(T));
         return buffer;
     }
     static Message<T> Deserialize(const std::vector<char>& buffer)
     {
+        if (buffer.size() != sizeof(T))
+        {
+            return Message<T>(T());
+        }
         T data{};
         memcpy_s(&data, sizeof(T), buffer.data(), sizeof(T));
-        return Message<T>(data);
+        return Message<T>(std::move(data));
     }
 
 protected:

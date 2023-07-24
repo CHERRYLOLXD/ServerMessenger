@@ -1,46 +1,25 @@
 #pragma once
 
-class Console {
+#include "Logger.h"
+
+class Console final
+{
 public:
 
-    template<class... Args>
-    static void PrintLine(std::wstring_view message, const Args& ...args)
-    {
-        std::wstringstream formatted;
-        FormatString(message, formatted, args...);
-        std::lock_guard printConsoleLock(m_printConsoleMutex);
-        std::wcout << std::move(formatted.str()) << std::endl;
-    }
-    template<class... Args>
-    static void PrintErrorLine(std::wstring_view message, const Args& ...args)
-    {
-        std::wstringstream formatted;
-        FormatString(message, formatted, args...);
-        std::lock_guard printConsoleLock(m_printConsoleMutex);
-        std::wcerr << std::move(formatted.str()) << std::endl;
-    }
-    static std::wstring ReadLine();
+    static void Initialize();
+
+    static std::string WStringToData(const wchar_t* data);
+    static std::wstring DataToWString(const char* data);
+
+    static std::wstring ReadLine(std::wstring_view message);
+
+    static void PrintErrorLine(std::wstring_view message);
+    static void PrintLine(std::wstring_view message);
 
 private:
 
-    static void FormatString(std::wstring_view message, std::wstringstream& stream)
-    {
-        stream << message;
-    }
-    template<class T, class... Args>
-    static void FormatString(std::wstring_view message, std::wstringstream& stream, const T& arg, const Args&... args)
-    {
-        size_t bracketsPosition = message.find(L"{}");
-        if (bracketsPosition == std::wstring_view::npos)
-        {
-            stream << message;
-        }
-        else
-        {
-            stream << message.substr(0, bracketsPosition) << L"[" << arg << L"]";
-            FormatString(message.substr(bracketsPosition + 2), stream, args...);
-        }
-    }
+    static void LogMessage(std::wstring&& message);
+    static void SetMode(int fileDescriptor);
 
     static std::mutex m_printConsoleMutex;
     static std::mutex m_readConsoleMutex;

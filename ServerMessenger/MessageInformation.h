@@ -1,22 +1,23 @@
 #pragma once
 
-class MessageInformation
+class MessageInformation final
 {
 public:
 
-    enum MessagesTypes
+    enum MessagesTypes : int
     {
         StringMessage
     };
 
     MessagesTypes GetMessageType();
     void SetMessageType(MessagesTypes messageType);
-    int32_t GetMessageSize();
-    void SetMessageSize(int32_t messageSize);
+
+    int GetMessageSize();
+    void SetMessageSize(int messageSize);
 
 private:
 
     MessagesTypes m_messageType;
-    int32_t m_messageSize;
+    int m_messageSize;
 
 };

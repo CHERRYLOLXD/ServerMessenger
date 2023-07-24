@@ -1,7 +1,8 @@
-#include "ServerMessenger.h"
+#include "stdafx.h"
+
 #include "StringMessage.h"
 
-StringMessage::StringMessage(const std::wstring& data) : Message<std::wstring>(data)
+StringMessage::StringMessage(std::wstring&& data) : Message<std::wstring>(std::move(data))
 {
 
 }
@@ -18,5 +19,5 @@ StringMessage StringMessage::Deserialize(const std::vector<char>& buffer)
 {
     size_t size = buffer.size() / sizeof(wchar_t);
     std::wstring data(reinterpret_cast<const wchar_t*>(buffer.data()), size);
-    return StringMessage(data);
+    return StringMessage(std::move(data));
 }

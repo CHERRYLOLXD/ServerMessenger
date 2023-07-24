@@ -1,10 +1,11 @@
 #pragma once
 
-class WinsockInitializer
+class WinsockInitializer final
 {
 public:
 
     ~WinsockInitializer();
+
     int Initialize();
 
 };

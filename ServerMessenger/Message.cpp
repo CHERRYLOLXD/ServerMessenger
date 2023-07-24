@@ -1,2 +1,3 @@
-#include "ServerMessenger.h"
+#include "stdafx.h"
+
 #include "Message.h"
